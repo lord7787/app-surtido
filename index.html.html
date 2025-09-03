@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reporte de Surtido de Productos</title>
+<!-- Archivo de instalación de la app -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Para iPhone (iOS) -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SurtidoApp">
+
+<!-- Color del navegador -->
+<meta name="theme-color" content="#27ae60">
+
+<!-- Código que activa la instalación -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker registrado'))
+        .catch(err => console.log('Error: ', err));
+    });
+  }
+</script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Roboto', sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-size: 1.9em;
+      font-weight: 700;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 25px;
+    }
+
+    .header label {
+      font-weight: 500;
+      color: #555;
+    }
+
+    .header input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+
+    .floor-section {
+      margin-bottom: 28px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      background-color: #fcfdff;
+    }
+
+    .floor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .floor-header h2 {
+      font-size: 1.4em;
+      color: #2c3e50;
+      margin: 0;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95em;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-primary {
+      background-color: #27ae60;
+      color: white;
+    }
+
+    .btn-secondary {
+      background-color: #3498db;
+      color: white;
+    }
+
+    .btn-danger {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    .btn-warning {
+      background-color: #f39c12;
+      color: white;
+    }
+
+    .btn-settings {
+      background-color: #9b59b6;
+      color: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .editable {
+      cursor: pointer;
+      position: relative;
+      padding-right: 20px;
+    }
+
+    .editable::after {
+      content: "✎";
+      font-size: 0.8em;
+      color: #3498db;
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .sucursal-row td:first-child {
+      width: 70%;
+    }
+
+    .sucursal-row td:last-child {
+      width: 30%;
+    }
+
+    .delete-sucursal {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      cursor: pointer;
+    }
+
+    .btn-add {
+      background-color: #3498db;
+      color: white;
+      width: 100%;
+      margin-top: 12px;
+      font-size: 0.95em;
+    }
+
+    .results {
+      margin-top: 25px;
+      padding: 22px;
+      background-color: #e8f4fc;
+      border-left: 5px solid #3498db;
+      border-radius: 10px;
+      font-size: 1.1em;
+    }
+
+    .results div {
+      margin: 8px 0;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 35px;
+      color: #95a5a6;
+      font-size: 0.9em;
+    }
+
+    /* Modales */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .modal-content {
+      background: white;
+      color: #333;
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 650px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+
+    .modal-body {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .report-card {
+      background: white;
+      border: 1px solid #dde2e6;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+    }
+
+    .report-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .report-date {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+
+    .report-details {
+      font-size: 0.95em;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 15px;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 0.85em;
+      border-radius: 5px;
+    }
+
+    .close-btn {
+      background-color: #95a5a6;
+      color: white;
+      margin-top: 15px;
+      width: 100%;
+      padding: 12px;
+      font-size: 1em;
+    }
+
+    /* Contenedor oculto para imagen */
+    .preview-container {
+      display: none;
+      position: absolute;
+      left: -9999px;
+      width: 800px;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      font-family: Arial, sans-serif;
+    }
+
+    .preview-container h3 {
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Bienvenida -->
+  <div id="welcomeScreen" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>👋 Bienvenido</h2>
+        <p>Registra cuántas líneas de productos se surtieron hoy.</p>
+      </div>
+      <button class="btn-primary" onclick="cerrarBienvenida()">Comenzar</button>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div class="container" id="capture" style="display: none;">
+    <h1>📋 Reporte de Surtido de Productos</h1>
+    <p style="color: #666; font-size: 0.95em; text-align: center;">Completa los datos del día de trabajo.</p>
+
+    <div class="header">
+      <div>
+        <label>📅 Fecha:</label>
+        <input type="date" id="fecha" />
+      </div>
+      <div>
+        <label>⏰ Hora de Inicio:</label>
+        <input type="time" id="horaInicio" />
+      </div>
+      <div>
+        <label>🔚 Hora Final:</label>
+        <input type="time" id="horaFinal" />
+      </div>
+      <div>
+        <label>🏢 Nombre del Área:</label>
+        <input type="text" id="nuevoPiso" placeholder="Ej: Piso 1" />
+        <button class="btn-secondary" onclick="agregarPiso()" style="width:100%; margin-top:8px;">➕ Añadir Área</button>
+      </div>
+    </div>
+
+    <div id="pisosContainer"></div>
+
+    <div id="exportArea" style="text-align:center; margin:25px 0;">
+      <button class="btn-primary" onclick="guardarInforme()" style="margin:5px;">✅ Guardar Informe</button>
+      <button class="btn-secondary" onclick="verHistorial()" style="margin:5px;">📋 Ver Informes</button>
+      <button class="btn-settings" onclick="abrirSuperUsuario()" style="margin:5px;">🔐 Super Usuario</button>
+    </div>
+
+    <div class="results">
+      <div><strong>🟢 Total de Líneas:</strong> <span id="totalLineas">0</span></div>
+      <div><strong>⏱️ Tiempo Total:</strong> <span id="tiempoTotal">0</span> minutos</div>
+      <div><strong>📊 Productividad:</strong> <span id="productividad">0.0</span> segundos por línea</div>
+    </div>
+
+    <div class="footer">
+      Aplicación para registro de surtido - Fácil de usar
+    </div>
+  </div>
+
+  <!-- Modal: Super Usuario -->
+  <div id="superUserModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🔐 Super Usuario</h2>
+        <p>Gestiona la aplicación.</p>
+      </div>
+      <input type="date" id="nuevaFechaExpiracion" placeholder="Fecha de expiración" />
+      <input type="password" id="nuevaContrasena" placeholder="Nueva contraseña (opcional)" />
+      <button class="btn-warning" onclick="cambiarFechaExpiracion()">📅 Cambiar Fecha</button>
+      <button class="btn-primary" onclick="cambiarContrasenaSuper()">🔐 Cambiar Contraseña</button>
+      <button class="close-btn" onclick="cerrarSuperUsuario()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: Historial -->
+  <div id="historyScreen" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📋 Informes Guardados</h2>
+        <p>Selecciona uno para eliminar o exportar como imagen.</p>
+      </div>
+      <div class="modal-body" id="listaInformes"></div>
+      <button class="close-btn" onclick="cerrarHistorial()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Vista previa para imagen -->
+  <div id="previewContainer" class="preview-container">
+    <h3>Informe de Surtido</h3>
+    <div id="previewContent"></div>
+  </div>
+
+  <script>
+    // 🔐 Configuración inicial
+    const CONTRASENA_SUPER_KEY = "superUserPassword";
+    const FECHA_EXPIRACION_KEY = "appExpiracion";
+    const FECHA_DEFAULT = "2025-12-31";
+
+    // Cargar contraseña guardada o usar predeterminada
+    function getContrasenaSuper() {
+      return localStorage.getItem(CONTRASENA_SUPER_KEY) || "admin123";
+    }
+
+    window.onload = function () {
+      const hoy = new Date().toISOString().split("T")[0];
+      let expiracion = localStorage.getItem(FECHA_EXPIRACION_KEY) || FECHA_DEFAULT;
+      localStorage.setItem(FECHA_EXPIRACION_KEY, expiracion);
+
+      if (hoy > expiracion) {
+        alert(`❌ Esta aplicación ha expirado.\nContacta al supervisor.`);
+        return;
+      }
+
+      document.getElementById("fecha").value = hoy;
+      document.getElementById("welcomeScreen").style.display = "flex";
+
+      cargarEstructura();
+      actualizarResultados();
+    };
+
+    function cerrarBienvenida() {
+      document.getElementById("welcomeScreen").style.display = "none";
+      document.getElementById("capture").style.display = "block";
+    }
+
+    // --- Super Usuario ---
+    function abrirSuperUsuario() {
+      const pass = prompt("🔐 Ingresa la contraseña del Super Usuario:");
+      if (pass === getContrasenaSuper()) {
+        document.getElementById("nuevaFechaExpiracion").value = localStorage.getItem(FECHA_EXPIRACION_KEY) || FECHA_DEFAULT;
+        document.getElementById("superUserModal").style.display = "flex";
+      } else {
+        alert("❌ Contraseña incorrecta.");
+      }
+    }
+
+    function cambiarFechaExpiracion() {
+      const nueva = document.getElementById("nuevaFechaExpiracion").value;
+      if (nueva && /^\d{4}-\d{2}-\d{2}$/.test(nueva)) {
+        localStorage.setItem(FECHA_EXPIRACION_KEY, nueva);
+        alert(`✅ Fecha actualizada hasta: ${nueva}`);
+      } else {
+        alert("❌ Fecha inválida.");
+      }
+    }
+
+    function cambiarContrasenaSuper() {
+      const nueva = document.getElementById("nuevaContrasena").value.trim();
+      if (!nueva) {
+        alert("⚠️ Escribe una nueva contraseña.");
+        return;
+      }
+      localStorage.setItem(CONTRASENA_SUPER_KEY, nueva);
+      document.getElementById("nuevaContrasena").value = "";
+      alert("✅ Contraseña del Super Usuario actualizada.");
+    }
+
+    function cerrarSuperUsuario() {
+      document.getElementById("superUserModal").style.display = "none";
+    }
+
+    // --- Estructura ---
+    function agregarPiso() {
+      const pisoNombre = document.getElementById('nuevoPiso').value.trim() || `Área ${document.querySelectorAll('.floor-section').length + 1}`;
+      const container = document.getElementById('pisosContainer');
+      const div = document.createElement('div');
+      div.className = 'floor-section';
+      div.innerHTML = `
+        <div class="floor-header">
+          <h2 class="editable">${pisoNombre}</h2>
+          <button class="btn-danger" onclick="eliminarPiso(this)">Eliminar</button>
+        </div>
+        <table class="tabla-sucursal">
+          <thead>
+            <tr>
+              <th>Sucursal</th>
+              <th>Líneas</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="sucursal-row">
+              <td class="sucursal-cell editable">Nueva Sucursal</td>
+              <td><input type="number" value="0" min="0" /></td>
+              <td><button class="delete-sucursal" onclick="eliminarFila(this)">❌</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn-add" onclick="agregarSucursal(this)">➕ Agregar Sucursal</button>
+      `;
+      container.appendChild(div);
+      habilitarEdicionEn(div);
+      document.getElementById('nuevoPiso').value = '';
+      guardarEstructura();
+    }
+
+    function habilitarEdicionEn(container) {
+      container.querySelectorAll('.editable').forEach(el => {
+        el.onclick = function (e) {
+          if (e.target.tagName === 'TD' || e.target.classList.contains('editable')) {
+            const nuevo = prompt("Editar nombre:", this.textContent);
+            if (nuevo && nuevo.trim() !== "") {
+              this.textContent = nuevo.trim();
+              guardarEstructura();
+            }
+          }
+        };
+      });
+    }
+
+    function eliminarPiso(button) {
+      if (document.querySelectorAll('.floor-section').length > 1) {
+        button.closest('.floor-section').remove();
+        actualizarResultados();
+        guardarEstructura();
+      } else {
+        alert("No puedes eliminar el último área.");
+      }
+    }
+
+    function agregarSucursal(button) {
+      const tbody = button.parentElement.querySelector('tbody');
+      const tr = document.createElement('tr');
+      tr.className = 'sucursal-row';
+      tr.innerHTML = `
+        <td class="sucursal-cell editable">Sucursal Nueva</td>
+        <td><input type="number" value="0" min="0" /></td>
+        <td><button class="delete-sucursal" onclick="eliminarFila(this)">❌</button></td>
+      `;
+      tbody.appendChild(tr);
+      habilitarEdicionEn(tr);
+      guardarEstructura();
+    }
+
+    function eliminarFila(button) {
+      const tr = button.closest('tr');
+      if (confirm("¿Eliminar esta sucursal?")) {
+        tr.remove();
+        actualizarResultados();
+        guardarEstructura();
+      }
+    }
+
+    // --- Cálculos ---
+    function actualizarResultados() {
+      let total = 0;
+      document.querySelectorAll('input[type="number"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+      });
+      const tiempoMin = calcularTiempoMinutos();
+      const productividad = total > 0 && tiempoMin > 0 ? ((tiempoMin * 60) / total).toFixed(1) : "0.0";
+
+      document.getElementById('totalLineas').textContent = total;
+      document.getElementById('tiempoTotal').textContent = tiempoMin;
+      document.getElementById('productividad').textContent = productividad;
+    }
+
+    function calcularTiempoMinutos() {
+      const inicio = document.getElementById('horaInicio').value;
+      const fin = document.getElementById('horaFinal').value;
+      if (!inicio || !fin) return 0;
+      const [h1, m1] = inicio.split(':').map(Number);
+      const [h2, m2] = fin.split(':').map(Number);
+      const inicioMin = h1 * 60 + m1;
+      const finMin = h2 * 60 + m2;
+      let diff = finMin - inicioMin;
+      return diff < 0 ? diff + 1440 : diff;
+    }
+
+    // --- Guardar Informe y Limpiar ---
+    function guardarInforme() {
+      actualizarResultados();
+
+      const informe = {
+        fecha: document.getElementById('fecha').value,
+        horaInicio: document.getElementById('horaInicio').value,
+        horaFinal: document.getElementById('horaFinal').value,
+        total: document.getElementById('totalLineas').textContent,
+        tiempoMin: document.getElementById('tiempoTotal').textContent,
+        productividad: document.getElementById('productividad').textContent,
+        timestamp: new Date().toLocaleString(),
+        pisos: []
+      };
+
+      document.querySelectorAll('.floor-section').forEach(piso => {
+        const nombre = piso.querySelector('h2').textContent;
+        const sucursales = [];
+        piso.querySelectorAll('tbody tr').forEach(tr => {
+          const nombreSuc = tr.querySelector('.sucursal-cell').textContent;
+          const lineas = tr.querySelector('input[type="number"]').value;
+          sucursales.push({ nombre: nombreSuc, lineas });
+        });
+        informe.pisos.push({ nombre, sucursales });
+      });
+
+      const historial = JSON.parse(localStorage.getItem('reportesLineas') || '[]');
+      historial.unshift(informe);
+      localStorage.setItem('reportesLineas', JSON.stringify(historial));
+
+      // ✅ Limpiar: líneas, horas
+      document.querySelectorAll('input[type="number"]').forEach(input => input.value = 0);
+      document.getElementById('horaInicio').value = '';
+      document.getElementById('horaFinal').value = '';
+
+      // ✅ Actualizar resultados en pantalla
+      actualizarResultados();
+
+      alert("✅ Informe guardado y formulario limpiado.");
+    }
+
+    function guardarEstructura() {
+      const pisos = [];
+      document.querySelectorAll('.floor-section').forEach(piso => {
+        const nombre = piso.querySelector('h2').textContent;
+        const sucursales = [];
+        piso.querySelectorAll('tbody tr').forEach(tr => {
+          sucursales.push({
+            nombre: tr.querySelector('.sucursal-cell').textContent,
+            lineas: tr.querySelector('input[type="number"]').value
+          });
+        });
+        pisos.push({ nombre, sucursales });
+      });
+      localStorage.setItem('estructuraPisos', JSON.stringify(pisos));
+    }
+
+    function cargarEstructura() {
+      const guardada = JSON.parse(localStorage.getItem('estructuraPisos'));
+      const container = document.getElementById('pisosContainer');
+      container.innerHTML = '';
+
+      if (guardada && guardada.length > 0) {
+        guardada.forEach(piso => {
+          const div = document.createElement('div');
+          div.className = 'floor-section';
+          let filas = '';
+          piso.sucursales.forEach(s => {
+            filas += `
+              <tr class="sucursal-row">
+                <td class="sucursal-cell editable">${s.nombre}</td>
+                <td><input type="number" value="${s.lineas}" min="0" /></td>
+                <td><button class="delete-sucursal" onclick="eliminarFila(this)">❌</button></td>
+              </tr>`;
+          });
+          div.innerHTML = `
+            <div class="floor-header">
+              <h2 class="editable">${piso.nombre}</h2>
+              <button class="btn-danger" onclick="eliminarPiso(this)">Eliminar</button>
+            </div>
+            <table class="tabla-sucursal">
+              <thead>
+                <tr>
+                  <th>Sucursal</th>
+                  <th>Líneas</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>${filas}</tbody>
+            </table>
+            <button class="btn-add" onclick="agregarSucursal(this)">➕ Agregar Sucursal</button>
+          `;
+          container.appendChild(div);
+          habilitarEdicionEn(div);
+        });
+      } else {
+        agregarPiso();
+      }
+    }
+
+    // --- Historial Profesional ---
+    function verHistorial() {
+      const lista = document.getElementById('listaInformes');
+      lista.innerHTML = '';
+      const historial = JSON.parse(localStorage.getItem('reportesLineas') || '[]');
+
+      if (historial.length === 0) {
+        lista.innerHTML = '<p style="text-align:center; color:#999;">No hay informes guardados.</p>';
+      } else {
+        historial.forEach((rep, index) => {
+          const card = document.createElement('div');
+          card.className = 'report-card';
+
+          let pisosText = '';
+          rep.pisos.forEach(p => {
+            pisosText += `<strong>${p.nombre}:</strong> `;
+            p.sucursales.forEach(s => {
+              pisosText += `${s.nombre}(${s.lineas}), `;
+            });
+            pisosText = pisosText.slice(0, -2) + '<br>';
+          });
+
+          card.innerHTML = `
+            <div class="report-date">📅 ${rep.fecha}</div>
+            <div class="report-details">
+              ${pisosText}
+              <div>🟢 <strong>Líneas:</strong> ${rep.total}</div>
+              <div>⏱️ <strong>Tiempo:</strong> ${rep.tiempoMin} min</div>
+              <div>📊 <strong>Productividad:</strong> ${rep.productividad} seg/linea</div>
+            </div>
+            <div class="report-actions">
+              <button class="btn-danger btn-small" onclick="eliminarInforme(${index})">🗑️ Eliminar</button>
+              <button class="btn-warning btn-small" onclick="exportarInformeComoImagen(${index})">📷 Imagen</button>
+            </div>
+          `;
+          lista.appendChild(card);
+        });
+      }
+      document.getElementById('historyScreen').style.display = 'flex';
+    }
+
+    function cerrarHistorial() {
+      document.getElementById('historyScreen').style.display = 'none';
+    }
+
+    function eliminarInforme(index) {
+      if (confirm("¿Eliminar este informe?")) {
+        const historial = JSON.parse(localStorage.getItem('reportesLineas') || '[]');
+        historial.splice(index, 1);
+        localStorage.setItem('reportesLineas', JSON.stringify(historial));
+        verHistorial();
+        alert("🗑️ Informe eliminado.");
+      }
+    }
+
+    function exportarInformeComoImagen(index) {
+      const historial = JSON.parse(localStorage.getItem('reportesLineas') || '[]');
+      const rep = historial[index];
+
+      const previewContent = document.getElementById('previewContent');
+      let pisosText = '';
+      rep.pisos.forEach(p => {
+        pisosText += `<strong>${p.nombre}:</strong> `;
+        p.sucursales.forEach(s => {
+          pisosText += `${s.nombre}(${s.lineas}), `;
+        });
+        pisosText = pisosText.slice(0, -2) + '<br>';
+      });
+
+      previewContent.innerHTML = `
+        <h3>Informe de Surtido</h3>
+        <p><strong>Fecha:</strong> ${rep.fecha}</p>
+        <p><strong>Hora Inicio:</strong> ${rep.horaInicio} | <strong>Final:</strong> ${rep.horaFinal}</p>
+        <div>${pisosText}</div>
+        <p><strong>Total de Líneas:</strong> ${rep.total}</p>
+        <p><strong>Tiempo Total:</strong> ${rep.tiempoMin} minutos</p>
+        <p><strong>Productividad:</strong> ${rep.productividad} segundos por línea</p>
+        <p><em>Generado el: ${new Date().toLocaleString()}</em></p>
+      `;
+
+      document.getElementById('previewContainer').style.display = 'block';
+      html2canvas(document.getElementById('previewContainer'), { scale: 2, backgroundColor: '#ffffff' })
+        .then(canvas => {
+          const link = document.createElement('a');
+          link.download = `Informe_${rep.fecha}.jpg`;
+          link.href = canvas.toDataURL('image/jpeg', 0.95);
+          link.click();
+          document.getElementById('previewContainer').style.display = 'none';
+        })
+        .catch(() => {
+          alert('❌ Error al generar imagen.');
+          document.getElementById('previewContainer').style.display = 'none';
+        });
+    }
+
+    // Guardar estructura al salir
+    window.addEventListener('beforeunload', guardarEstructura);
+  </script>
+</body>
+</html>
